@@ -1,0 +1,2 @@
+# Environment (credentials loaded by docker-compose; do not commit)
+.env
