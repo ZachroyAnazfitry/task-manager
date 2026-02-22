@@ -88,6 +88,50 @@ flowchart TB
 
 ### A3. Database schema design
 
+**Entity relationship diagram**
+
+```mermaid
+erDiagram
+    NOTIFICATIONS ||--o{ NOTIFICATION_DELIVERIES : "has"
+    NOTIFICATIONS ||--o| IN_APP_NOTIFICATIONS : "may have"
+
+    NOTIFICATIONS {
+        uuid id PK
+        bigint user_id
+        string type
+        json channels
+        json payload
+        timestamp scheduled_at
+        string status
+        string idempotency_key
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    NOTIFICATION_DELIVERIES {
+        uuid id PK
+        uuid notification_id FK
+        string channel
+        string status
+        string external_id
+        timestamp sent_at
+        text failure_reason
+        int retry_count
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    IN_APP_NOTIFICATIONS {
+        uuid id PK
+        bigint user_id
+        uuid notification_id FK
+        string title
+        text body
+        timestamp read_at
+        timestamp created_at
+    }
+```
+
 **notifications** (core table)
 
 | Column | Type | Description |
