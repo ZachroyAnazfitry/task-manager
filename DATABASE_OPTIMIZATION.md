@@ -2,56 +2,13 @@
 
 **Task 3: Database & Performance Optimization** – Query optimization, design challenges, real-world problems.
 
-This document provides a standalone answer for the database and performance optimization task. It uses the given PostgreSQL schema and addresses the report query, the "Recently Viewed Products" design challenge, and the real-world problem of a large orders table.
+This document provides answer for the database and performance optimization task.
 
 ---
 
-## Scenario
-
-The following PostgreSQL schema is used for the questions below:
-
-```sql
-CREATE TABLE users (
-    id UUID PRIMARY KEY,
-    username VARCHAR(255) UNIQUE NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE TABLE orders (
-    id UUID PRIMARY KEY,
-    user_id UUID REFERENCES users(id),
-    total_amount DECIMAL(10, 2),
-    status VARCHAR(50),
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE TABLE products (
-    id UUID PRIMARY KEY,
-    name VARCHAR(255),
-    category VARCHAR(100),
-    price DECIMAL(10, 2),
-    stock_quantity INTEGER
-);
-
-CREATE TABLE order_items (
-    id UUID PRIMARY KEY,
-    order_id UUID REFERENCES orders(id),
-    product_id UUID REFERENCES products(id),
-    quantity INTEGER,
-    price DECIMAL(10, 2)
-);
-```
-
----
-
-## A. Query Optimization (30 min)
+## A. Query Optimization
 
 ### A1. SQL query for the report
-
-**Requirement:** Generate a report showing the top 10 users by total spending in the last 30 days, including user details, total number of orders, and total amount spent.
-
-Using `orders.total_amount` as the source of truth for spending (simplest and aligned with "total amount" in the schema):
 
 ```sql
 SELECT
@@ -69,17 +26,13 @@ ORDER BY total_spent DESC
 LIMIT 10;
 ```
 
-If the business defines "total spending" from line items instead of `orders.total_amount`, use a subquery or join to `order_items` and aggregate `SUM(oi.quantity * oi.price)` per order, then per user; the report shape (user details, order count, total spent) stays the same, with the SUM coming from `order_items`.
-
 ### A2. Indexes to optimize the query
 
-On **orders**, create a composite index on `(created_at, user_id)` or `(user_id, created_at)` so the database can efficiently filter by the last 30 days and group by user without a full table scan. If most reports filter by `status`, add a composite such as `(status, created_at)` or include `status` in the composite (e.g. `(status, created_at, user_id)`). The composite index on orders already supports the join to `users`; if you use `(created_at, user_id)`, the join on `user_id` is still efficient. A standalone index on `orders(user_id)` is redundant if the composite starts with or includes `user_id`. On **users**, the primary key is already indexed, so no additional index is needed for the join.
-
-Together, these indexes allow the database to narrow orders by date range (and optionally status), then aggregate by user, without scanning the entire orders table.
+On **orders** table, create a composite index on `(user_id, created_at)` so the database can efficiently filter by the last 30 days and group by user. If most reports filter by `status`, add a composite such as `(status, created_at)` or include `status` in the composite (e.g. `(status, created_at, user_id)`).
 
 ### A3. Further strategies if the query is still slow with millions of records
 
-A **materialized view** can pre-aggregate "user spending in last 30 days" (e.g. user_id, total_orders, total_spent, last_refreshed) and be refreshed periodically (e.g. hourly via cron or a scheduled job). The report then reads from the materialized view instead of joining and aggregating the full orders table. **Partitioning** `orders` by `created_at` (e.g. by month or quarter) means the report only scans the partition(s) that cover the last 30 days, reducing I/O and lock contention. Alternatively, maintain a **summary table** (e.g. `user_spending_30d`) updated by the application or a batch job with one row per user and a rolling 30-day total; the report reads from this small table. Running this report (and other heavy reads) on a **read replica** lets the primary database focus on transactional workload. If real-time accuracy is not required, **caching** the top-10 result (e.g. in Redis or application memory) with a short TTL (e.g. 5–15 minutes) further reduces load.
+Use an **aggregate table** (e.g. `user_spending_30d`) with one row per user and a rolling 30-day total, updated by the application or a batch job; the report reads from this table instead of scanning orders. Run the report on a **read replica** database so the primary DB only handles transactional workload. **Cache** the top-10 result (e.g. in Redis) with a small time window (e.g. 5–15 minutes) to reduce load further.
 
 ---
 
