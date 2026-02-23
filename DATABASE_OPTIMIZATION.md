@@ -30,19 +30,17 @@ LIMIT 10;
 
 On **orders** table, create a composite index on `(user_id, created_at)` so the database can efficiently filter by the last 30 days and group by user. If most reports filter by `status`, add a composite such as `(status, created_at)` or include `status` in the composite (e.g. `(status, created_at, user_id)`).
 
-### A3. Further strategies if the query is still slow with millions of records
+### A3. Further strategies to counter slow query
 
-Use an **aggregate table** (e.g. `user_spending_30d`) with one row per user and a rolling 30-day total, updated by the application or a batch job; the report reads from this table instead of scanning orders. Run the report on a **read replica** database so the primary DB only handles transactional workload. **Cache** the top-10 result (e.g. in Redis) with a small time window (e.g. 5–15 minutes) to reduce load further.
+Use an **aggregate table** (e.g. `user_spending_30d`) with one row per user and a rolling 30-day total so that the report reads from this table instead of scanning orders. Run the report on a **read replica** database so the primary DB only handles transactional workload. **Cache** the top-10 result (e.g. in Redis) with a small time window (e.g. 5–15 minutes) to reduce load further.
 
 ---
 
-## B. Design Challenge (20 min) – Recently Viewed Products
-
-**Requirement:** For each user, store the last 50 products they viewed, track when they viewed each product, and support fast queries for the homepage.
+## B. Design Challenge
 
 ### B1. Database schema changes
 
-**SQL approach (primary):** Add a table to record product views per user with a timestamp. Use "move to front on re-view" semantics: when a user views a product they have already viewed, update `viewed_at` so it becomes the most recent. That implies one row per (user, product) with a current timestamp.
+**SQL approach:** Create a new table called user_product_views to record product views per user with a timestamp. Always update `viewed_at` column when a user views a product they have already viewed. That implies one row per (user, product) with a current timestamp.
 
 ```sql
 CREATE TABLE user_product_views (
@@ -56,17 +54,21 @@ CREATE INDEX idx_user_product_views_user_viewed
     ON user_product_views (user_id, viewed_at DESC);
 ```
 
-To enforce "last 50" per user, the application (or a scheduled job) keeps only the 50 most recent rows per user (see B3). The index `(user_id, viewed_at DESC)` makes "fetch last 50 for user" and "find oldest view for this user" efficient.
+To enforce "last 50 products" per user, the application (or through the scheduled job) can keeps only the 50 most recent rows per user. The index `(user_id, viewed_at DESC)` will fetch last 50 products for user and find oldest view for this user efficiently.
 
-**Alternative (NoSQL):** Use a per-user structure (e.g. Redis LIST or a document store) holding an ordered list of `{ product_id, viewed_at }` with at most 50 entries. On each view, push the entry (or update position if re-view) and trim to 50. This gives very fast reads and writes and natural "last N" semantics without deletes in SQL.
+### B2. SQL vs NoSQL
 
-### B2. SQL vs NoSQL (or both) and why
+**SQL (e.g. PostgreSQL)** keeps everything in one place: we can JOIN with `products` table for the homepage and simple analytics. The downside is need to enforce "last 50" in the app or a job, and causes heavy traffic.
 
-**SQL** fits an existing PostgreSQL stack: it is easy to JOIN with `products` for the homepage (product name, price, image), and it provides ACID and a single place for analytics. The trade-off is that the application or a job must enforce "last 50" (deletes or pruning), and high view volume can mean many updates or deletes per user. **NoSQL (e.g. Redis)** offers very low latency reads and writes, and "last N" is natural (e.g. LPUSH + LTRIM). The trade-off is a separate store to operate and optionally sync to the main DB for analytics, and eventual consistency if you dual-write. As a recommendation, use the SQL table above for consistency with the rest of the schema and simpler operations; consider Redis or similar if homepage latency is critical and you accept maintaining a cache or dual-write.
+**NoSQL (e.g. Redis)** gives very fast reads and writes, and "last 50" is built-in. The downside is we run a second store, and may need to sync it to the main DB for analytics.
+
+**Recommendation:** I prefer the SQL table for consistency and simplicity. Redis will be used only if latency is critical and to maintain a separate cache or write to both SQL and Redis (dual-write).
 
 ### B3. Data retention (only keep last 50 items)
 
-**In the application**, after inserting or updating a view (e.g. upsert on `(user_id, product_id)` setting `viewed_at = NOW()`), run a delete that keeps only the 50 most recent rows for that user—for example, delete rows where `(user_id, viewed_at)` is not in the current top 50 (using a subquery or CTE with `ORDER BY viewed_at DESC LIMIT 50`). This can be done in the same request or asynchronously. A **scheduled job** can periodically (e.g. daily or hourly), for each user or in batches, delete all but the 50 most recent rows per user; this reduces complexity in the request path but can leave temporarily more than 50 rows per user. A **trigger** could enforce the cap on INSERT/UPDATE, but for "last 50" it is more complex and can slow down writes, so the application or job is usually clearer. In a **NoSQL** setup, when adding a view you push to the list and trim to 50 (e.g. LTRIM 0 49), with no separate retention step.
+- **In the application:** After each view (upsert on `user_id` + `product_id`, set `viewed_at = NOW()`), delete older rows so only the 50 most recent remain for that user. Do this in the same request or in a background task.
+- **Scheduled job:** Run a periodic job (e.g. hourly) that, per user or in batches, deletes all but the 50 most recent rows; simpler for the app but the table may briefly hold more than 50 per user.
+- **NoSQL (e.g. Redis):** Push the new view onto the list and trim to 50 (e.g. LTRIM); no separate retention step.
 
 ### B4. API endpoint design
 
