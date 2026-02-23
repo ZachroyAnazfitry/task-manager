@@ -65,7 +65,12 @@ Architectural decisions, trade-offs, security considerations, and possible impro
 - **Context & separation:** Auth state and actions live in `AuthContext`; `ProtectedRoute` centralizes auth checks for private routes. API layer is in `api/`; components stay focused on UI and calling those APIs. Shared types live in `types`.
 - **TypeScript:** Props and state are typed (e.g. `Task`, `User`, `TaskFormData`); forms and API responses use these types for consistency and safer refactors.
 - **Controlled forms:** Login, Register, and TaskModal use local state and `setState`; loading and error state are handled in component state; no direct DOM mutation.
-- **UI/UX requirements:** Responsive layout via Tailwind (`sm:`, `flex-wrap`, `max-w-4xl mx-auto`, `hidden sm:inline`, etc.) for mobile-friendly dashboard and auth. Loading states on list fetch, auth check, and form submit with disabled buttons and clear labels (“Signing in…”, “Saving…”). Error handling: inline form errors plus `react-hot-toast` for API success/error; `getErrorMessage()` normalizes API errors. Form validation: required fields and rules (e.g. password length, match) with user-facing messages. Clean, professional UI with Tailwind (gradients, spacing, shadows) and delete confirmation modal for tasks.
+- **UI/UX features:**
+  - **Responsive:** Tailwind responsive utilities (`sm:`, `flex-wrap`, `max-w-4xl mx-auto`, `hidden sm:inline`, etc.) for a mobile-friendly dashboard and auth pages.
+  - **Loading states:** List fetch, auth check, and form submit show loading with disabled buttons and clear labels (“Signing in…”, “Saving…”).
+  - **Error handling:** Inline form errors plus `react-hot-toast` for API success/error; `getErrorMessage()` normalizes API errors for consistent messages.
+  - **Form validation:** Required fields and rules (e.g. password length, match) with user-facing messages.
+  - **Appearance:** Tailwind-based UI (gradients, spacing, shadows); delete confirmation modal for tasks.
 
 ---
 
