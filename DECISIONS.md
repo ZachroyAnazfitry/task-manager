@@ -67,7 +67,7 @@ Architectural decisions, trade-offs, security considerations, and possible impro
 - **Controlled forms:** Login, Register, and TaskModal use local state and `setState`; loading and error state are handled in component state; no direct DOM mutation.
 - **UI/UX features:**
   - **Responsive:** Tailwind responsive utilities (`sm:`, `flex-wrap`, `max-w-4xl mx-auto`, `hidden sm:inline`, etc.) for a mobile-friendly dashboard and auth pages.
-  - **Loading states:** List fetch, auth check, and form submit show loading with disabled buttons and clear labels (“Signing in…”, “Saving…”).
+  - **Loading states:** List fetch, auth check, and form submit show loading with disabled buttons and clear labels.
   - **Error handling:** Inline form errors plus `react-hot-toast` for API success/error; `getErrorMessage()` normalizes API errors for consistent messages.
   - **Form validation:** Required fields and rules (e.g. password length, match) with user-facing messages.
   - **Appearance:** Tailwind-based UI (gradients, spacing, shadows); delete confirmation modal for tasks.
@@ -87,7 +87,7 @@ Architectural decisions, trade-offs, security considerations, and possible impro
 
 ## Improvements
 
-- **Tests:** PHPUnit for API (auth, task CRUD, validation); Jest + React Testing Library for frontend (auth flow, task list, forms).
+- **Tests:** Jest + React Testing Library for frontend (auth flow, task list, forms).
 - **Refresh tokens:** Short-lived access token + refresh token to improve security without forcing frequent login.
 - **Rate limiting:** Stricter limits on auth and task endpoints to reduce abuse.
 - **Audit logging:** Log task create/update/delete and auth events for accountability.
@@ -98,7 +98,6 @@ Architectural decisions, trade-offs, security considerations, and possible impro
 
 - **Passwords:** Hashed with Laravel’s default (bcrypt); never stored or logged in plain text.
 - **JWT:** Signed with a server-side secret (`JWT_SECRET`); token included only in `Authorization` header, not in URLs. Consider short TTL and refresh tokens in production.
-- **Input validation:** All register, login, and task inputs validated via Laravel Form Requests (type, length, enums); Eloquent prevents SQL injection via parameterised queries.
+- **Input validation:** All register, login, and task inputs validated via Laravel Form Requests (type, length, enums); Laravel Eloquent prevents SQL injection via parameterised queries.
 - **CORS:** Configured to allow only the frontend origin(s) in production; credentials supported where needed.
-- **HTTPS:** In production, serve API and dashboard over HTTPS to protect tokens and data in transit.
 - **Sensitive data:** `.env` and secrets not committed; root `.env.example` documents variables used by Docker Compose and the backend. Use `cp .env.example .env` before `docker compose up`; change values in `.env` for production-like local runs.
