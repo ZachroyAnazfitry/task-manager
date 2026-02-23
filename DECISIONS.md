@@ -41,16 +41,6 @@ Architectural decisions, trade-offs, security considerations, and possible impro
 - **Decision:** No secrets are stored in `docker-compose.yml`. Required variables are documented in a root `.env.example`. To run the app, copy `.env.example` to `.env` at the project root, then run `docker compose up --build`. Credentials are loaded from `.env` (gitignored), keeping the same pattern as production (env-based config, no committed secrets).
 - **Reason:** New developers get a single, documented step (`cp .env.example .env`); production uses env vars or a secret store, so local setup mirrors that. Keeps sensitive values out of version control.
 
-### Backend: indexing, scopes, and scoped binding
-
-- **Decision:** The tasks migration defines composite indexes with inline comments; the Task model uses query scopes for listing; the TaskController uses those scopes in `index` and scoped route model binding for `show`/`update`/`destroy`.
-- **Reason:** Indexes support filtered and ordered listing without full table scans; scopes keep the controller thin and the query reusable; scoped binding returns 404 for other users’ tasks instead of 403, avoiding information leakage for security.
-
-### Backend: backed enums for task status and priority
-
-- **Decision:** Task status and priority are implemented as PHP backed enums (`App\Enums\TaskStatus`, `App\Enums\TaskPriority`) with string backing. The Task model casts these attributes to the enum; validation uses `Rule::enum(...)`.
-- **Reason:** Single source of truth, type safety in code, and better refactorability; aligns with modern PHP and Laravel best practice. API payloads stay string-based so the frontend contract is unchanged.
-
 ### Automatic startup (no manual commands with Docker)
 
 - **Decision:** When using Docker, dependencies and app startup are fully automatic: Composer runs in the backend image build; `key:generate`, `jwt:secret`, and migrations run in the backend container entrypoint/command. No manual `composer install` or artisan commands are required to run the app successfully.
@@ -65,6 +55,17 @@ Architectural decisions, trade-offs, security considerations, and possible impro
 - **Controller:** `index` uses the scopes and `latest()` for ordering; `show`, `update`, and `destroy` rely on scoped route model binding so that only the authenticated user’s tasks are resolved (404 for others).
 - **Scoped route binding:** In `AppServiceProvider::boot()`, the `task` route parameter is resolved via `Task::forUser(auth('api')->id())->findOrFail($value)`, so task resources are never loaded for another user.
 - **Backed enums (status & priority):** `TaskStatus` and `TaskPriority`  are the single source of truth for allowed values. The Task model casts `status` and `priority` to these enums; Form Requests validate with `Rule::enum(...)`. API request/response remain string values; enums improve type safety and refactorability in the backend.
+
+---
+
+## Frontend: Best Practices Applied
+
+- **Rules of Hooks:** Hooks are only used at the top level of components or in the custom hook `useAuth`; no conditional or loop-based hook calls. `useAuth` throws if used outside `AuthProvider`, following the usual React context pattern.
+- **Purity & side effects:** Components render from props/state/context only; no prop mutation. Side effects (API calls, `localStorage`) run in `useEffect` or event handlers (`handleSubmit`, `handleCreate`), not during render. Pure helpers (e.g. `statusBadgeClass`, `priorityBadgeClass`) are used for derived UI.
+- **Context & separation:** Auth state and actions live in `AuthContext`; `ProtectedRoute` centralizes auth checks for private routes. API layer is in `api/`; components stay focused on UI and calling those APIs. Shared types live in `types`.
+- **TypeScript:** Props and state are typed (e.g. `Task`, `User`, `TaskFormData`); forms and API responses use these types for consistency and safer refactors.
+- **Controlled forms:** Login, Register, and TaskModal use local state and `setState`; loading and error state are handled in component state; no direct DOM mutation.
+- **UI/UX requirements:** Responsive layout via Tailwind (`sm:`, `flex-wrap`, `max-w-4xl mx-auto`, `hidden sm:inline`, etc.) for mobile-friendly dashboard and auth. Loading states on list fetch, auth check, and form submit with disabled buttons and clear labels (“Signing in…”, “Saving…”). Error handling: inline form errors plus `react-hot-toast` for API success/error; `getErrorMessage()` normalizes API errors. Form validation: required fields and rules (e.g. password length, match) with user-facing messages. Clean, professional UI with Tailwind (gradients, spacing, shadows) and delete confirmation modal for tasks.
 
 ---
 
