@@ -1,6 +1,6 @@
 # Task Management App
 
-A production-ready MVP task management system (API + dashboard) for the [Full Stack Software Engineer Offsite Test](https://nexwave.io/tenthub/full-stack-engineer/) (TENT OF PRESENCE SDN. BHD.).
+A production-ready MVP task management system (API + dashboard).
 
 ## Repository Structure
 
@@ -8,7 +8,7 @@ A production-ready MVP task management system (API + dashboard) for the [Full St
 /task-management-app
   /backend    # Laravel REST API (PHP)
   /frontend   # React + TypeScript dashboard (Vite)
-  /database   # Schema documentation and optional SQL exports
+  /database   
   README.md
   DECISIONS.md
   SYSTEM_DESIGN.md
@@ -18,7 +18,7 @@ A production-ready MVP task management system (API + dashboard) for the [Full St
 
 ## Prerequisites
 
-- **Docker** and **Docker Compose** (recommended for one-command run)
+- **Docker** and **Docker Compose**
 - Or locally: PHP 8.2+, Composer, Node 18+, npm, MySQL 8
 
 ## Setup Instructions (Docker)
@@ -29,22 +29,21 @@ A production-ready MVP task management system (API + dashboard) for the [Full St
    cd task-management-app
    ```
 
-2. **Configure environment** (mimics production: no secrets in repo)
-   - Copy root `.env.example` to `.env`: `cp .env.example .env`
+2. **Configure environment** 
+   - Copy root `.env.example` to `.env`: Run `cp .env.example .env`
    - Optionally edit `.env` to change credentials (defaults work for local).
-   - For local frontend dev outside Docker: copy `frontend/.env.example` to `frontend/.env` and set `VITE_API_URL=http://localhost:8000`.
+   - For local frontend dev run without Docker: copy `frontend/.env.example` to `frontend/.env` and set `VITE_API_URL=http://localhost:8000`.
 
 3. **Start the stack**
    ```bash
    docker compose up --build
    ```
-   No manual `composer install` or artisan commands needed—dependencies and migrations run automatically.
+   No manual `composer install` or artisan commands needed, dependencies and migrations run automatically.
 
-4. **Migrations** run automatically when the backend starts. To seed a demo user and tasks (optional):
-   ```bash
-   docker compose exec backend php artisan db:seed
-   ```
-   Demo login after seeding: `demo@example.com` / `password`.
+4. **Migrations** run automatically when the backend starts.
+   Demo login after seeding:
+   - **Email:** `demo@example.com`
+   - **Password:** `password`
 
 5. **Access the application**
    - **Dashboard:** http://localhost (or http://localhost:80)
@@ -72,34 +71,6 @@ A production-ready MVP task management system (API + dashboard) for the [Full St
    - Copy `frontend/.env.example` to `frontend/.env` and set `VITE_API_URL=http://localhost:8000`
    - Run `npm install` and `npm run dev`
    - Open http://localhost:5173
-
-## Environment Variables
-
-### Backend (`backend/.env`)
-
-| Variable     | Description                          |
-| ------------ | ------------------------------------ |
-| `APP_KEY`    | Laravel application key              |
-| `DB_CONNECTION` | Database driver (mysql)           |
-| `DB_HOST`    | Database host (e.g. `mysql` in Docker, `127.0.0.1` local) |
-| `DB_PORT`    | Database port (3306)                 |
-| `DB_DATABASE`| Database name                        |
-| `DB_USERNAME`| Database user                        |
-| `DB_PASSWORD`| Database password                    |
-| `JWT_SECRET` | Secret for JWT signing (run `php artisan jwt:secret` to generate) |
-
-### Frontend (`frontend/.env`)
-
-| Variable        | Description                    |
-| --------------- | ------------------------------ |
-| `VITE_API_URL`  | Backend API base URL (e.g. `http://localhost:8000`) |
-
-## Database Setup
-
-1. Create a MySQL database (if not using Docker Compose default).
-2. Configure `DB_*` in `backend/.env`.
-3. Run migrations: `php artisan migrate` (or `docker compose exec backend php artisan migrate`).
-4. Schema and indexes are defined in `backend/database/migrations/`; see also `database/` for documentation.
 
 ## Technology Choices
 
