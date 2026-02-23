@@ -26,7 +26,7 @@ A production-ready task management system (API + dashboard).
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd task-management-app
+   cd task-manager
    ```
 
 2. **Configure environment** 
