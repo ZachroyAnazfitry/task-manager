@@ -84,11 +84,9 @@ Example response:
 ]
 ```
 
-Optionally, record a view when the user opens a product page—either as a side effect of `GET /api/products/:id` or by having the client call the record-view endpoint.
-
 ---
 
-## C. Real-World Problem (10 min) – Orders table at 10M rows
+## C. Real-World Problem
 
 ### C1. Improve query performance
 
