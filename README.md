@@ -55,6 +55,8 @@ A production-ready task management system (API + dashboard).
    - Or inside the running backend container:  
      `docker compose exec backend sh -c "composer install && php artisan test"`
 
+   **Note:** The test run uses a one-off container that exits when tests finish and may appear as "Exited" (outline icon) In Docker Desktop.
+
 ## Setup Instructions (Local without Docker)
 
 1. **Backend**
