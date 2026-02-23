@@ -60,45 +60,6 @@ flowchart TB
   W2 --> Push
   W2 --> DB
 ```
-```mermaid
-flowchart TD
-    subgraph Producers
-        A[Task Management App] -->|API Call| B[Notification API]
-    end
-
-    subgraph Notification API
-        B --> C[Validate Request]
-        C --> D[Persist Metadata in DB]
-        C --> E[Enqueue Job]
-    end
-
-    subgraph Scheduler
-        F[Scheduler] -->|Due Jobs| E
-    end
-
-    subgraph Queue
-        E --> G[Message Queue]
-    end
-
-    subgraph Workers
-        G --> H[Worker]
-        H --> I[Load Notification + Recipient]
-        I --> J[Channel Providers]
-        J --> J1[Email Provider]
-        J --> J2[SMS Provider]
-        J --> J3[Push Provider]
-        I --> K[Write In-App Row to DB]
-        J1 --> L[Update Delivery Status in DB]
-        J2 --> L
-        J3 --> L
-    end
-
-    subgraph Database
-        D
-        K
-        L
-    end
-```
 
 **Flow:** Producers (e.g. task management app) call the Notification API with immediate or scheduled requests. The API validates, persists metadata, and enqueues a job (or the Scheduler enqueues due jobs). Workers consume from the queue, load the notification and recipient, call each channel provider (email, SMS, push), and write in-app rows to the database. They update delivery status after each channel. The database stores notification metadata, scheduling intent, and per-channel delivery status.
 
