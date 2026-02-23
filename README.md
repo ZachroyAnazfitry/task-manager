@@ -1,6 +1,6 @@
 # Task Management App
 
-A production-ready MVP task management system (API + dashboard).
+A production-ready task management system (API + dashboard).
 
 ## Repository Structure
 
@@ -18,7 +18,7 @@ A production-ready MVP task management system (API + dashboard).
 
 ## Prerequisites
 
-- **Docker** and **Docker Compose**
+- **Docker** and **Docker Compose** (recommended)
 - Or locally: PHP 8.2+, Composer, Node 18+, npm, MySQL 8
 
 ## Setup Instructions (Docker)
@@ -32,7 +32,6 @@ A production-ready MVP task management system (API + dashboard).
 2. **Configure environment** 
    - Copy root `.env.example` to `.env`: Run `cp .env.example .env`
    - Optionally edit `.env` to change credentials (defaults work for local).
-   - For local frontend dev run without Docker: copy `frontend/.env.example` to `frontend/.env` and set `VITE_API_URL=http://localhost:8000`.
 
 3. **Start the stack**
    ```bash
@@ -49,8 +48,6 @@ A production-ready MVP task management system (API + dashboard).
    - **Dashboard:** http://localhost (or http://localhost:80)
    - **API base:** http://localhost:8000/api
 
-   For local frontend development with hot reload, run the frontend outside Docker (`cd frontend && npm run dev`) and set `VITE_API_URL=http://localhost:8000`. Then open http://localhost:5173.
-
 6. **Run tests in Docker** (backend API feature/unit tests)
    - One-off container (recommended):  
      `docker compose run --rm backend-test`  
@@ -62,6 +59,7 @@ A production-ready MVP task management system (API + dashboard).
 
 1. **Backend**
    - Copy `backend/.env.example` to `backend/.env`
+   - Copy `frontend/.env.example` to `frontend/.env` and set `VITE_API_URL=http://localhost:8000`.
    - Set `DB_CONNECTION=mysql`, `DB_HOST=127.0.0.1`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`
    - Run `composer install`, `php artisan key:generate`, `php artisan jwt:secret`
    - Run `php artisan migrate` (and optionally `php artisan db:seed`)
@@ -75,8 +73,8 @@ A production-ready MVP task management system (API + dashboard).
 ## Technology Choices
 
 - **Backend: Laravel (PHP)** – Mature REST API stack, Eloquent ORM, Form Requests for validation, and a large ecosystem. Chosen for rapid, maintainable API development.
-- **Auth: JWT (tymon/jwt-auth)** – Stateless tokens as required by the spec; frontend stores the token and sends it with each request.
-- **Frontend: React + TypeScript + Vite** – Type safety for API contracts and forms, fast dev experience. Aligns with evaluation criteria for TypeScript use.
+- **Auth: JWT (tymon/jwt-auth)** – Stateless tokens; frontend stores the token and sends it with each request.
+- **Frontend: React + TypeScript + Vite** – Type safety for API contracts and forms, fast dev experience.
 - **Database: MySQL 8** – Reliable, well-supported by Laravel; migrations and indexes keep schema and performance documented.
 - **Docker Compose** – Reproducible local environment so any developer can run the app with minimal setup; ready for future deployment (e.g. AWS).
 
