@@ -2,19 +2,7 @@
 
 **Task 2: System Design** – Notification service (architecture, scalability, trade-offs).
 
-This document presents a standalone design for a notification service that could be implemented in any stack (e.g. Laravel, Node.js, Go) and could serve applications such as a task manager, billing system, or any product requiring multi-channel notifications.
-
----
-
-## Scenario
-
-Design a notification service that:
-
-- Sends notifications via **email**, **SMS**, **push**, and **in-app**
-- Handles **100,000+ notifications per day**
-- Supports **scheduled notifications** (send later)
-- **Tracks delivery status** and **retries failed deliveries**
-- **Scales to 1M+ notifications per day** within 6 months
+This document presents a design for a notification service that could be implemented in any stack (e.g. Laravel, Node.js, Python) and could serve applications that requiring multi-channel notifications.
 
 ---
 
@@ -71,6 +59,45 @@ flowchart TB
   W2 --> SMS
   W2 --> Push
   W2 --> DB
+```
+```mermaid
+flowchart TD
+    subgraph Producers
+        A[Task Management App] -->|API Call| B[Notification API]
+    end
+
+    subgraph Notification API
+        B --> C[Validate Request]
+        C --> D[Persist Metadata in DB]
+        C --> E[Enqueue Job]
+    end
+
+    subgraph Scheduler
+        F[Scheduler] -->|Due Jobs| E
+    end
+
+    subgraph Queue
+        E --> G[Message Queue]
+    end
+
+    subgraph Workers
+        G --> H[Worker]
+        H --> I[Load Notification + Recipient]
+        I --> J[Channel Providers]
+        J --> J1[Email Provider]
+        J --> J2[SMS Provider]
+        J --> J3[Push Provider]
+        I --> K[Write In-App Row to DB]
+        J1 --> L[Update Delivery Status in DB]
+        J2 --> L
+        J3 --> L
+    end
+
+    subgraph Database
+        D
+        K
+        L
+    end
 ```
 
 **Flow:** Producers (e.g. task management app) call the Notification API with immediate or scheduled requests. The API validates, persists metadata, and enqueues a job (or the Scheduler enqueues due jobs). Workers consume from the queue, load the notification and recipient, call each channel provider (email, SMS, push), and write in-app rows to the database. They update delivery status after each channel. The database stores notification metadata, scheduling intent, and per-channel delivery status.
