@@ -62,17 +62,20 @@ To enforce "last 50 products" per user, the application (or through the schedule
 
 **NoSQL (e.g. Redis)** gives very fast reads and writes, and "last 50" is built-in. The downside is we run a second store, and may need to sync it to the main DB for analytics.
 
-**Recommendation:** I prefer the SQL table for consistency and simplicity. Redis will be used only if latency is critical and to maintain a separate cache or write to both SQL and Redis (dual-write).
+**Preference:** I prefer the SQL table for consistency and simplicity. Redis will be used only if latency is critical and to maintain a separate cache or write to both SQL and Redis (dual-write).
 
-### B3. Data retention (only keep last 50 items)
+### B3. Data retention methods
 
-- **In the application:** After each view (upsert on `user_id` + `product_id`, set `viewed_at = NOW()`), delete older rows so only the 50 most recent remain for that user. Do this in the same request or in a background task.
-- **Scheduled job:** Run a periodic job (e.g. hourly) that, per user or in batches, deletes all but the 50 most recent rows; simpler for the app but the table may briefly hold more than 50 per user.
+- **In the application:** After each view (update or insert on `user_id` + `product_id`, set `viewed_at = NOW()`), delete older rows so only the 50 most recent remain for that user. Do this in the same request or in a background task.
+- **Scheduled job:** Run a periodic job (e.g. hourly) per user or in batches, deletes all but only for the 50 most recent rows; simpler for the app but the table may hold more than 50 per user.
 - **NoSQL (e.g. Redis):** Push the new view onto the list and trim to 50 (e.g. LTRIM); no separate retention step.
 
 ### B4. API endpoint design
 
-To **record a view**, expose `POST /api/users/me/recent-views` with body `{ "product_id": "<uuid>" }` or `POST /api/products/:id/view` (product from path; user from auth). The operation should be idempotent: the same (user, product) updates `viewed_at` (upsert). Return 204 or 200 with a minimal body. To **get recent views** for the homepage, expose `GET /api/users/me/recent-views?limit=50`, which returns a list of recently viewed products, most recent first. Example response shape:
+- **Record a view:** `POST /api/users/me/recent-views` with body `{ "product_id": "<uuid>" }`, or `POST /api/products/:id/view` (product from URL, user from auth). Same (user, product) again just updates `viewed_at` (upsert). Return 204 or 200.
+- **Get recent views (homepage):** `GET /api/users/me/recent-views?limit=50` — returns recently viewed products, most recent first. Backend joins `user_product_views` with `products`, orders by `viewed_at DESC`, limit 50.
+
+Example response:
 
 ```json
 [
@@ -81,7 +84,7 @@ To **record a view**, expose `POST /api/users/me/recent-views` with body `{ "pro
 ]
 ```
 
-The backend joins `user_product_views` with `products` and orders by `viewed_at DESC`, limiting to 50. Optionally, `GET /api/products/:id` can record a view as a side effect when the product is fetched, or the client can call the dedicated view endpoint when the product page is opened.
+Optionally, record a view when the user opens a product page—either as a side effect of `GET /api/products/:id` or by having the client call the record-view endpoint.
 
 ---
 
