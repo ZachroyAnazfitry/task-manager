@@ -61,18 +61,18 @@ flowchart TB
   W2 --> DB
 ```
 
-**Flow:** Producers (e.g. task management app) call the Notification API with immediate or scheduled requests. The API validates, persists metadata, and enqueues a job (or the Scheduler enqueues due jobs). Workers consume from the queue, load the notification and recipient, call each channel provider (email, SMS, push), and write in-app rows to the database. They update delivery status after each channel. The database stores notification metadata, scheduling intent, and per-channel delivery status.
+**Flow:** Producers (e.g. task management app) call the Notification API with immediate or scheduled requests. The API validates, persists metadata, and enqueues a job. Workers consume from the queue, load the notification and recipient, call each channel provider (email, SMS, push notification), and write in-app rows to the database. Then, delivery status updated after each channel. The database stores notification metadata, scheduling intent, and per-channel delivery status.
 
 ### A2. Key components and their responsibilities
 
 | Component | Responsibility |
 | --------- | -------------- |
-| **Notification API** | Accept create/schedule requests; validate payload and recipient; enqueue job or write to scheduler store; return notification ID for status tracking; expose GET status and optional list by user. |
-| **Scheduler** | For "send at" time: either enqueue with queue delay (e.g. SQS message timer, Redis TTL) or a cron that queries due notifications and enqueues jobs. Keeps "when to send" separate from the API request path. |
-| **Queue** | Decouple producers and workers; absorb traffic spikes; support retries and dead letter queue (DLQ). Durable so messages are not lost on worker crash. |
-| **Worker(s)** | Dequeue job; load notification and recipient; for each channel (email, SMS, push, in-app), call the provider or write to DB; update delivery status; on failure, retry with backoff or send to DLQ. |
-| **Delivery status store** | Persist per-channel status (pending, sent, failed, retrying) and timestamps. Enables "track delivery status" and "retry failed deliveries" flows; supports idempotency. |
-| **Channel providers** | External: SendGrid/Resend (email), Twilio (SMS), FCM/OneSignal (push). In-app: own database table read by clients (poll or subscribe). |
+| **Notification API** | Accepts create or schedule requests, validates input, saves metadata to the DB and enqueues the job. Returns notification ID and supports GET status and list-by-user. |
+| **Scheduler** | Handles "send at" time: either uses queue delay (e.g. SQS/Redis) or a cron that finds due notifications and enqueues them. Keeps "when to send" separate from the API. |
+| **Queue** | Buffers jobs between the API and workers; absorbs traffic spikes; supports retries and a dead-letter queue (DLQ). Durable so messages are not lost if a worker crashes. |
+| **Worker(s)** | Takes jobs from the queue, loads notification and recipient, sends via each channel (email, SMS, push) or writes to the DB for in-app, then updates delivery status. On failure, retries with backoff or sends to the DLQ. |
+| **Delivery status store** | Stores per-channel status (pending, sent, failed, retrying) and timestamps. Used for tracking delivery and retrying failed sends; supports idempotency. |
+| **Channel providers** | External: SendGrid/Resend (email), Twilio (SMS), FCM/OneSignal (push). In-app: data stored in the DB; clients poll or subscribe to read it. |
 
 ### A3. Database schema design
 
