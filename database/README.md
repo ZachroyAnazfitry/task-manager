@@ -1,6 +1,6 @@
 # Database
 
-Task 1 asks for a **database schema file or migration scripts**. This project provides **migration scripts** (Laravel) in `../backend/database/migrations/`. Schema and indexes are defined there.
+This project provides **migration scripts** (Laravel) in `../backend/database/migrations/`. Schema and indexes are defined there.
 
 ## Migration scripts
 
